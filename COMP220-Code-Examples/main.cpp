@@ -111,6 +111,10 @@ int main(int argc, char** argsv)
 
 	glDisableVertexAttribArray(0);
 
+	glDeleteBuffers(1, &vertexbuffer);
+	glDeleteVertexArrays(1, &VertexArrayID);
+	SDL_GL_DeleteContext(glContext);
+
 	//Destroy the window and quit SDL2, NB we should do this after all cleanup in this order!!!
 	//https://wiki.libsdl.org/SDL_DestroyWindow
 	SDL_DestroyWindow(window);
