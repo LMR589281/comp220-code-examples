@@ -140,9 +140,10 @@ int main(int argc, char** argsv)
 
 	// An array of 3 vectors which represents 3 vertices
 	static const GLfloat g_vertex_buffer_data[] = {
-	   -1.0f, -1.0f, 0.0f,
-	   1.0f, -1.0f, 0.0f,
-	   0.0f,  1.0f, 0.0f,
+		//pos					//col
+	   -1.0f, -1.0f, 0.0f,		1.0f, 0.0f, 0.0f,
+	   1.0f, -1.0f, 0.0f,		0.0f, 1.0f, 0.0f,
+	   0.0f,  1.0f, 0.0f,		0.0f, 0.0f, 1.0f,
 	};
 
 	// This will identify our vertex buffer
@@ -161,8 +162,19 @@ int main(int argc, char** argsv)
 		3,                  // size
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
-		0,                  // stride
+		6 * sizeof(GL_FLOAT),                  // stride
 		(void*)0            // array buffer offset
+	);
+
+	// 2nd attribute buffer : colour
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(
+		1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+		3,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		6 * sizeof(GL_FLOAT),                  // stride
+		(void*)(3 * sizeof(GL_FLOAT))            // array buffer offset
 	);
 
 	// Shader setup
