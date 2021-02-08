@@ -109,7 +109,8 @@ int main(int argc, char** argsv)
 
 	//Create a window, note we have to free the pointer returned using the DestroyWindow Function
 	//https://wiki.libsdl.org/SDL_CreateWindow
-	SDL_Window* window = SDL_CreateWindow("SDL2 Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_OPENGL);
+	//SDL_Window* window = SDL_CreateWindow("SDL2 Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_OPENGL);
+	SDL_Window* window = SDL_CreateWindow("SDL2 Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 720, 720, SDL_WINDOW_OPENGL);
 	//Checks to see if the window has been created, the pointer will have a value of some kind
 	if (window == nullptr)
 	{
@@ -138,12 +139,29 @@ int main(int argc, char** argsv)
 	glGenVertexArrays(1, &VertexArrayID);
 	glBindVertexArray(VertexArrayID);
 
+	/*
 	// An array of 3 vectors which represents 3 vertices
 	static const GLfloat g_vertex_buffer_data[] = {
 		//pos					//col
 	   -1.0f, -1.0f, 0.0f,		1.0f, 0.0f, 0.0f,
 	   1.0f, -1.0f, 0.0f,		0.0f, 1.0f, 0.0f,
 	   0.0f,  1.0f, 0.0f,		0.0f, 0.0f, 1.0f,
+	};
+	*/
+
+	// An array of 4 vectors which represents 4 vertices
+	static const GLfloat g_vertex_buffer_data[] = {
+		// position			// colour
+		-0.75f, -0.75f, 0.0f,	1.0f, 0.0f, 0.0f,    // Vertex B
+		0.75f, -0.75f, 0.0f,	0.0f, 1.0f, 0.0f,    // Vertex C
+		0.75f,  0.75f, 0.0f,	0.0f, 0.0f, 1.0f,    // Vertex D
+		-0.75f, 0.75f, 0.0f,	1.0f, 1.0f, 0.0f     // Vertex A
+	};
+
+	// Triangle indices - note anticlockwise ordering!
+	static const GLuint g_vertex_indices[] = {
+		0, 1, 2,	// first triangle, BCD
+		2, 3, 0		// second triangle, DAB
 	};
 
 	// This will identify our vertex buffer
@@ -176,6 +194,12 @@ int main(int argc, char** argsv)
 		6 * sizeof(GL_FLOAT),                  // stride
 		(void*)(3 * sizeof(GL_FLOAT))            // array buffer offset
 	);
+
+	// Generate a buffer for the indices, element buffer
+	GLuint elementbuffer;
+	glGenBuffers(1, &elementbuffer);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_vertex_indices), g_vertex_indices, GL_STATIC_DRAW);
 
 	// Shader setup
 	GLuint programID = LoadShaders("vertShader.glsl", "fragShader.glsl");
@@ -216,7 +240,9 @@ int main(int argc, char** argsv)
 		glUseProgram(programID);
 
 		// Draw the triangle !
-		glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
+		//glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
+
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
 
 		SDL_GL_SwapWindow(window);
 	}
