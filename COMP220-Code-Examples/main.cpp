@@ -113,7 +113,7 @@ int main(int argc, char** argsv)
 	//Create a window, note we have to free the pointer returned using the DestroyWindow Function
 	//https://wiki.libsdl.org/SDL_CreateWindow
 	//SDL_Window* window = SDL_CreateWindow("SDL2 Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_OPENGL);
-	SDL_Window* window = SDL_CreateWindow("SDL2 Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 720, 720, SDL_WINDOW_OPENGL);
+	SDL_Window* window = SDL_CreateWindow("SDL2 Window", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, 960, 720, SDL_WINDOW_OPENGL);
 	//Checks to see if the window has been created, the pointer will have a value of some kind
 	if (window == nullptr)
 	{
@@ -208,9 +208,11 @@ int main(int argc, char** argsv)
 	GLuint programID = LoadShaders("vertShader.glsl", "fragShader.glsl");
 
 	//transforms
-	glm::mat4 trans = glm::mat4(1.0f);
-	trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-	trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+	glm::mat4 model = glm::mat4(1.0f);
+	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
+	model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
+
+	glm::mat4 mvp, view, projection;
 
 	unsigned int transformLoc = glGetUniformLocation(programID, "transform");
 
@@ -249,7 +251,17 @@ int main(int argc, char** argsv)
 
 		glUseProgram(programID);
 
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+		view = glm::lookAt(
+			glm::vec3(2, 0, 2),
+			glm::vec3(0, 0, 0),
+			glm::vec3(0, 1, 0)
+		);
+
+		projection = glm::perspective(glm::radians(45.0f), 4.0f / 3.0f, 0.1f, 100.0f);
+
+		mvp = projection * view * model;
+
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(mvp));
 
 		// Draw the triangle !
 		//glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
