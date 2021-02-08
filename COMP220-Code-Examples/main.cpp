@@ -125,6 +125,8 @@ int main(int argc, char** argsv)
 		return 1;
 	}
 
+	SDL_SetRelativeMouseMode(SDL_TRUE);
+
 	SDL_GLContext glContext = SDL_GL_CreateContext(window);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
@@ -213,6 +215,9 @@ int main(int argc, char** argsv)
 	model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
 
 	glm::mat4 mvp, view, projection;
+	glm::vec3 position(0, 0, 5), forward, rotation(0);
+	const glm::vec4 cameraFace(0, 0, -1, 0);
+	const float walkSpeed = 0.5, rotSpeed = 0.1f;
 
 	unsigned int transformLoc = glGetUniformLocation(programID, "transform");
 
@@ -233,6 +238,16 @@ int main(int argc, char** argsv)
 			case SDL_QUIT:
 				running = false;
 				break;
+			case SDL_MOUSEMOTION:
+			{
+				rotation.y -= ev.motion.xrel * rotSpeed;
+				rotation.x -= ev.motion.yrel * rotSpeed;
+				glm::mat4 viewRotate(1.0f);
+				viewRotate = glm::rotate(viewRotate, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
+				viewRotate = glm::rotate(viewRotate, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+				forward = glm::normalize(glm::vec3(viewRotate * cameraFace));
+				break;
+			}
 				//KEYDOWN Message, called when a key has been pressed down
 			case SDL_KEYDOWN:
 				//Check the actual key code of the key that has been pressed
@@ -241,6 +256,12 @@ int main(int argc, char** argsv)
 					//Escape key
 				case SDLK_ESCAPE:
 					running = false;
+					break;
+				case SDLK_w:
+					position += walkSpeed * forward;
+					break;
+				case SDLK_s:
+					position -= walkSpeed * forward;
 					break;
 				}
 			}
@@ -252,8 +273,8 @@ int main(int argc, char** argsv)
 		glUseProgram(programID);
 
 		view = glm::lookAt(
-			glm::vec3(2, 0, 2),
-			glm::vec3(0, 0, 0),
+			position,
+			position + forward,
 			glm::vec3(0, 1, 0)
 		);
 
