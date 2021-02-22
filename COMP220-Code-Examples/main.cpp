@@ -2,9 +2,12 @@
 #include <SDL.h>
 #include <gl\glew.h>
 #include <SDL_opengl.h>
+#include <SDL_image.h>
+
 #include <fstream>
 #include <sstream>
 #include <vector>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -125,6 +128,20 @@ int main(int argc, char** argsv)
 		return 1;
 	}
 
+	SDL_Surface* image = IMG_Load("Crate.jpg");
+	if (!image) 
+	{
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "IMG_Load failed", IMG_GetError(), NULL);
+
+		//Destroy the window and quit SDL2, NB we should do this after all cleanup in this order!!!
+		//https://wiki.libsdl.org/SDL_DestroyWindow
+		SDL_DestroyWindow(window);
+		//https://wiki.libsdl.org/SDL_Quit
+		SDL_Quit();
+
+		return 1;
+	}
+
 	SDL_SetRelativeMouseMode(SDL_TRUE);
 
 	SDL_GLContext glContext = SDL_GL_CreateContext(window);
@@ -156,11 +173,11 @@ int main(int argc, char** argsv)
 
 	// An array of 4 vectors which represents 4 vertices
 	static const GLfloat g_vertex_buffer_data[] = {
-		// position			// colour
-		-0.75f, -0.75f, 0.0f,	1.0f, 0.0f, 0.0f,    // Vertex B
-		0.75f, -0.75f, 0.0f,	0.0f, 1.0f, 0.0f,    // Vertex C
-		0.75f,  0.75f, 0.0f,	0.0f, 0.0f, 1.0f,    // Vertex D
-		-0.75f, 0.75f, 0.0f,	1.0f, 1.0f, 0.0f     // Vertex A
+		// position			    // colour			//texture
+		-0.75f, -0.75f, 0.0f,	1.0f, 0.0f, 0.0f,	0.0f, 0.0f,    // Vertex B
+		0.75f, -0.75f, 0.0f,	0.0f, 1.0f, 0.0f,	1.0f, 0.0f,    // Vertex C
+		0.75f,  0.75f, 0.0f,	0.0f, 0.0f, 1.0f,	1.0f, 1.0f,    // Vertex D
+		-0.75f, 0.75f, 0.0f,	1.0f, 1.0f, 0.0f,	0.0f, 1.0f     // Vertex A
 	};
 
 	// Triangle indices - note anticlockwise ordering!
@@ -185,7 +202,7 @@ int main(int argc, char** argsv)
 		3,                  // size
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
-		6 * sizeof(GL_FLOAT),                  // stride
+		8 * sizeof(GL_FLOAT),                  // stride
 		(void*)0            // array buffer offset
 	);
 
@@ -196,8 +213,19 @@ int main(int argc, char** argsv)
 		3,                  // size
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
-		6 * sizeof(GL_FLOAT),                  // stride
+		8 * sizeof(GL_FLOAT),                  // stride
 		(void*)(3 * sizeof(GL_FLOAT))            // array buffer offset
+	);
+
+	// 3rd attribute buffer : texture
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(
+		2,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
+		2,                  // size
+		GL_FLOAT,           // type
+		GL_FALSE,           // normalized?
+		8 * sizeof(GL_FLOAT),                  // stride
+		(void*)(6 * sizeof(GL_FLOAT))            // array buffer offset
 	);
 
 	// Generate a buffer for the indices, element buffer
@@ -205,6 +233,28 @@ int main(int argc, char** argsv)
 	glGenBuffers(1, &elementbuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_vertex_indices), g_vertex_indices, GL_STATIC_DRAW);
+
+	// Create one OpenGL texture
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+
+	// "Bind" the newly created texture : all future texture functions will modify this texture
+	glBindTexture(GL_TEXTURE_2D, textureID);
+
+	int Mode = GL_RGB;
+
+	if (image->format->BytesPerPixel == 4) {
+		Mode = GL_RGBA;
+	}
+
+	glTexImage2D(GL_TEXTURE_2D, 0, Mode, image->w, image->h, 0, Mode, GL_UNSIGNED_BYTE, image->pixels);
+
+	// Nice trilinear filtering.
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// Shader setup
 	GLuint programID = LoadShaders("vertShader.glsl", "fragShader.glsl");
@@ -296,6 +346,8 @@ int main(int argc, char** argsv)
 
 	glDeleteBuffers(1, &vertexbuffer);
 	glDeleteVertexArrays(1, &VertexArrayID);
+
+	SDL_FreeSurface(image);
 	SDL_GL_DeleteContext(glContext);
 
 	//Destroy the window and quit SDL2, NB we should do this after all cleanup in this order!!!
