@@ -107,7 +107,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 
 struct Vertex
 {
-	float x, y, z;
+	float x, y, z, u = 0.0f, v = 0.0f;
 };
 
 bool LoadModel(const char* filePath, std::vector<Vertex>& vertices, std::vector<unsigned>& indices)
