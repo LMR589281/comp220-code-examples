@@ -105,6 +105,25 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	return ProgramID;
 }
 
+/*
+struct Vertex
+{
+	float x, y, z;
+};
+
+bool LoadModel(const char* filePath, std::vector<Vertex>& vertices, std::vector<unsigned>& indices)
+{
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate);
+
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode || !scene->HasMeshes())
+	{
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Model import failed", importer.GetErrorString(), NULL);
+		return false;
+	}
+}
+*/
+
 int main(int argc, char** argsv)
 {
 	//Initialises the SDL Library, passing in SDL_INIT_VIDEO to only initialise the video subsystems
@@ -175,6 +194,7 @@ int main(int argc, char** argsv)
 	};
 	*/
 
+	
 	// An array of 4 vectors which represents 4 vertices
 	static const GLfloat g_vertex_buffer_data[] = {
 		// position			    // colour			//texture
@@ -274,6 +294,9 @@ int main(int argc, char** argsv)
 	const float walkSpeed = 0.5, rotSpeed = 0.1f;
 
 	unsigned int transformLoc = glGetUniformLocation(programID, "transform");
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	//Event loop, we will loop until running is set to false, usually if escape has been pressed or window is closed
 	bool running = true;
