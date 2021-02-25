@@ -105,7 +105,6 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 	return ProgramID;
 }
 
-/*
 struct Vertex
 {
 	float x, y, z;
@@ -121,8 +120,32 @@ bool LoadModel(const char* filePath, std::vector<Vertex>& vertices, std::vector<
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Model import failed", importer.GetErrorString(), NULL);
 		return false;
 	}
+
+	//Cheat! Don't do this.
+	aiMesh* mesh = scene->mMeshes[0];
+	if (!mesh)
+		return false;
+
+	vertices.clear();
+	indices.clear();
+
+	vertices.resize(mesh->mNumVertices);
+	for (unsigned i = 0; i < mesh->mNumVertices; i++) 
+	{
+		vertices[i].x = mesh->mVertices[i].x;
+		vertices[i].y = mesh->mVertices[i].y;
+		vertices[i].z = mesh->mVertices[i].z;
+	}
+
+	for (unsigned i = 0; i < mesh->mNumFaces; i++)
+	{
+		aiFace& face = mesh->mFaces[i];
+		for (unsigned j = 0; j < face.mNumIndices; j++)
+			indices.push_back(face.mIndices[j]);
+	}
+
+	return !(vertices.empty() || indices.empty());
 }
-*/
 
 int main(int argc, char** argsv)
 {
@@ -148,6 +171,16 @@ int main(int argc, char** argsv)
 		//Close the SDL Library
 		//https://wiki.libsdl.org/SDL_Quit
 		SDL_Quit();
+		return 1;
+	}
+
+	std::vector<Vertex> vertices;
+	std::vector<unsigned> indices;
+
+	if (!LoadModel("cube.nff", vertices, indices)) 
+	{
+		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error loading model", "", NULL);
+		//TODO should clean up here
 		return 1;
 	}
 
@@ -194,7 +227,7 @@ int main(int argc, char** argsv)
 	};
 	*/
 
-	
+	/*
 	// An array of 4 vectors which represents 4 vertices
 	static const GLfloat g_vertex_buffer_data[] = {
 		// position			    // colour			//texture
@@ -209,6 +242,7 @@ int main(int argc, char** argsv)
 		0, 1, 2,	// first triangle, BCD
 		2, 3, 0		// second triangle, DAB
 	};
+	*/
 
 	// This will identify our vertex buffer
 	GLuint vertexbuffer;
@@ -217,7 +251,7 @@ int main(int argc, char** argsv)
 	// The following commands will talk about our 'vertexbuffer' buffer
 	glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
 	// Give our vertices to OpenGL.
-	glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(Vertex) * vertices.size(), &vertices[0], GL_STATIC_DRAW);
 
 	// 1st attribute buffer : vertices
 	glEnableVertexAttribArray(0);
@@ -226,10 +260,11 @@ int main(int argc, char** argsv)
 		3,                  // size
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
-		8 * sizeof(GL_FLOAT),                  // stride
+		sizeof(Vertex),                  // stride
 		(void*)0            // array buffer offset
 	);
 
+	/*
 	// 2nd attribute buffer : colour
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(
@@ -251,12 +286,13 @@ int main(int argc, char** argsv)
 		8 * sizeof(GL_FLOAT),                  // stride
 		(void*)(6 * sizeof(GL_FLOAT))            // array buffer offset
 	);
+	*/
 
 	// Generate a buffer for the indices, element buffer
 	GLuint elementbuffer;
 	glGenBuffers(1, &elementbuffer);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(g_vertex_indices), g_vertex_indices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned) * indices.size(), &indices[0], GL_STATIC_DRAW);
 
 	// Create one OpenGL texture
 	GLuint textureID;
@@ -364,7 +400,7 @@ int main(int argc, char** argsv)
 		// Draw the triangle !
 		//glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
 
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
+		glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, (void*)0);
 
 		SDL_GL_SwapWindow(window);
 	}
