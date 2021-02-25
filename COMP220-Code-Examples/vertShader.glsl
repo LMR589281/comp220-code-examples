@@ -10,7 +10,7 @@ out vec2 vertUV;
 uniform mat4 transform;
 
 void main(){
-	gl_Position = transform * vec4(vertexPosition_modelspace, 1.0f);
+  gl_Position = transform * vec4(vertexPosition_modelspace, 1.0f);
 
   vertColour = vertexColour;
   vertUV = vertexUV;

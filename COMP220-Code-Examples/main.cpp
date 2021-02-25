@@ -2,7 +2,7 @@
 #include <SDL.h>
 #include <gl\glew.h>
 #include <SDL_opengl.h>
-#include <SDL_image.h>
+#include <..\SDL2_image-2.0.5\include\SDL_image.h>
 
 #include <fstream>
 #include <sstream>
@@ -11,6 +11,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path) {
 
@@ -218,7 +222,7 @@ int main(int argc, char** argsv)
 	);
 
 	// 3rd attribute buffer : texture
-	glEnableVertexAttribArray(1);
+	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(
 		2,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
 		2,                  // size
