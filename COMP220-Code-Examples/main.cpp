@@ -110,16 +110,29 @@ struct Vertex
 	float x, y, z, u = 0.0f, v = 0.0f;
 };
 
-bool LoadModel(const char* filePath, std::vector<Vertex>& vertices, std::vector<unsigned>& indices)
+bool LoadModel(const char* filePath, std::vector<Vertex>& vertices, std::vector<unsigned>& indices, std::string& texturePath)
 {
 	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate);
+	const aiScene* scene = importer.ReadFile(filePath, aiProcess_Triangulate | aiProcess_FlipUVs | 
+	aiProcess_GenSmoothNormals | aiProcess_GenUVCoords | 
+	aiProcess_CalcTangentSpace | aiProcess_FixInfacingNormals);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode || !scene->HasMeshes())
 	{
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Model import failed", importer.GetErrorString(), NULL);
 		return false;
 	}
+
+	//Cheat the texture!
+	bool hasTexture = false;
+	aiString texPath("");
+	if (scene->HasMaterials()) 
+	{
+		aiMaterial* material = scene->mMaterials[0];
+		hasTexture = material && material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) >=0;
+	}
+
+	texturePath = texPath.C_Str();
 
 	//Cheat! Don't do this.
 	aiMesh* mesh = scene->mMeshes[0];
@@ -130,11 +143,18 @@ bool LoadModel(const char* filePath, std::vector<Vertex>& vertices, std::vector<
 	indices.clear();
 
 	vertices.resize(mesh->mNumVertices);
+	aiVector3D* texCoords = hasTexture ? mesh->mTextureCoords[0] : nullptr;
 	for (unsigned i = 0; i < mesh->mNumVertices; i++) 
 	{
 		vertices[i].x = mesh->mVertices[i].x;
 		vertices[i].y = mesh->mVertices[i].y;
 		vertices[i].z = mesh->mVertices[i].z;
+
+		if (texCoords) 
+		{
+			vertices[i].u = texCoords[i].x;
+			vertices[i].v = texCoords[i].y;
+		}
 	}
 
 	for (unsigned i = 0; i < mesh->mNumFaces; i++)
@@ -176,15 +196,16 @@ int main(int argc, char** argsv)
 
 	std::vector<Vertex> vertices;
 	std::vector<unsigned> indices;
+	std::string texturePath;
 
-	if (!LoadModel("cube.nff", vertices, indices)) 
+	if (!LoadModel("crate.fbx", vertices, indices, texturePath))
 	{
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error loading model", "", NULL);
 		//TODO should clean up here
 		return 1;
 	}
 
-	SDL_Surface* image = IMG_Load("Crate.jpg");
+	SDL_Surface* image = IMG_Load(texturePath.c_str());
 	if (!image) 
 	{
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "IMG_Load failed", IMG_GetError(), NULL);
@@ -275,6 +296,7 @@ int main(int argc, char** argsv)
 		8 * sizeof(GL_FLOAT),                  // stride
 		(void*)(3 * sizeof(GL_FLOAT))            // array buffer offset
 	);
+	*/
 
 	// 3rd attribute buffer : texture
 	glEnableVertexAttribArray(2);
@@ -283,10 +305,10 @@ int main(int argc, char** argsv)
 		2,                  // size
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
-		8 * sizeof(GL_FLOAT),                  // stride
-		(void*)(6 * sizeof(GL_FLOAT))            // array buffer offset
+		sizeof(Vertex),                  // stride
+		(void*)(3 * sizeof(GL_FLOAT))            // array buffer offset
 	);
-	*/
+
 
 	// Generate a buffer for the indices, element buffer
 	GLuint elementbuffer;
@@ -321,8 +343,8 @@ int main(int argc, char** argsv)
 
 	//transforms
 	glm::mat4 model = glm::mat4(1.0f);
-	model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
-	model = glm::scale(model, glm::vec3(0.5, 0.5, 0.5));
+	//model = glm::rotate(model, glm::radians(90.0f), glm::vec3(0.0, 0.0, 1.0));
+	model = glm::scale(model, glm::vec3(0.01, 0.01, 0.01));
 
 	glm::mat4 mvp, view, projection;
 	glm::vec3 position(0, 0, 5), forward, rotation(0);
@@ -333,6 +355,8 @@ int main(int argc, char** argsv)
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+	glEnable(GL_DEPTH_TEST);
 
 	//Event loop, we will loop until running is set to false, usually if escape has been pressed or window is closed
 	bool running = true;
