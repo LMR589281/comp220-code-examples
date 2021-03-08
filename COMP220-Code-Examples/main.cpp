@@ -205,7 +205,7 @@ int main(int argc, char** argsv)
 	std::vector<unsigned> indices;
 	std::string texturePath;
 
-	if (!LoadModel("utah-teapot.fbx", vertices, indices, texturePath))
+	if (!LoadModel("utah-teapot.fbx", vertices, indices, texturePath))	//utah-teapot.fbx		crate.fbx
 	{
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error loading model", "", NULL);
 		//TODO should clean up here
@@ -294,7 +294,7 @@ int main(int argc, char** argsv)
 		(void*)0            // array buffer offset
 	);
 
-	// 2nd attribute buffer : lighting???
+	// 2nd attribute buffer : normals
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(
 		1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -362,7 +362,24 @@ int main(int argc, char** argsv)
 	const float walkSpeed = 0.5, rotSpeed = 0.1f;
 
 	unsigned int transformLoc = glGetUniformLocation(programID, "transform");
+	unsigned int objColourLoc = glGetUniformLocation(programID, "objColour");
 
+	float lightValues[] = {
+	0.0f, 1.0f, 0.0f,
+	0.0f,
+	1.0f, 1.0f, 1.0f
+	};
+
+	GLuint bindingPoint = 1, uniformBuffer, blockIndex;
+	blockIndex = glGetUniformBlockIndex(programID, "LightBlock");
+	glUniformBlockBinding(programID, blockIndex, bindingPoint);
+
+	glGenBuffers(1, &uniformBuffer);
+	glBindBuffer(GL_UNIFORM_BUFFER, uniformBuffer);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(lightValues), lightValues, GL_STATIC_DRAW);
+	glBindBufferBase(GL_UNIFORM_BUFFER, bindingPoint, uniformBuffer);
+
+	//general settings
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -430,6 +447,11 @@ int main(int argc, char** argsv)
 		mvp = projection * view * model;
 
 		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(mvp));
+
+		if (hasTexture)
+			glUniform3f(objColourLoc, -1.0f, -1.0f, -1.0f);
+		else
+			glUniform3f(objColourLoc, 1.0f, 1.0f, 1.0f);
 
 		// Draw the triangle !
 		//glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
