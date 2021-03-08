@@ -107,7 +107,7 @@ GLuint LoadShaders(const char* vertex_file_path, const char* fragment_file_path)
 
 struct Vertex
 {
-	float x, y, z, u = 0.0f, v = 0.0f;
+	float x, y, z, nx, ny, nz, u = 0.0f, v = 0.0f;
 };
 
 bool LoadModel(const char* filePath, std::vector<Vertex>& vertices, std::vector<unsigned>& indices, std::string& texturePath)
@@ -149,6 +149,13 @@ bool LoadModel(const char* filePath, std::vector<Vertex>& vertices, std::vector<
 		vertices[i].x = mesh->mVertices[i].x;
 		vertices[i].y = mesh->mVertices[i].y;
 		vertices[i].z = mesh->mVertices[i].z;
+
+		if (mesh->HasNormals()) 
+		{
+			vertices[i].nx = mesh->mNormals[i].x;
+			vertices[i].ny = mesh->mNormals[i].y;
+			vertices[i].nz = mesh->mNormals[i].z;
+		}
 
 		if (texCoords) 
 		{
@@ -198,15 +205,17 @@ int main(int argc, char** argsv)
 	std::vector<unsigned> indices;
 	std::string texturePath;
 
-	if (!LoadModel("crate.fbx", vertices, indices, texturePath))
+	if (!LoadModel("utah-teapot.fbx", vertices, indices, texturePath))
 	{
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Error loading model", "", NULL);
 		//TODO should clean up here
 		return 1;
 	}
 
-	SDL_Surface* image = IMG_Load(texturePath.c_str());
-	if (!image) 
+	bool hasTexture = !texturePath.empty();
+
+	SDL_Surface* image = hasTexture ? IMG_Load(texturePath.c_str()) : nullptr;
+	if (hasTexture && !image)
 	{
 		SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "IMG_Load failed", IMG_GetError(), NULL);
 
@@ -285,8 +294,7 @@ int main(int argc, char** argsv)
 		(void*)0            // array buffer offset
 	);
 
-	/*
-	// 2nd attribute buffer : colour
+	// 2nd attribute buffer : lighting???
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(
 		1,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -296,7 +304,6 @@ int main(int argc, char** argsv)
 		8 * sizeof(GL_FLOAT),                  // stride
 		(void*)(3 * sizeof(GL_FLOAT))            // array buffer offset
 	);
-	*/
 
 	// 3rd attribute buffer : texture
 	glEnableVertexAttribArray(2);
@@ -306,7 +313,7 @@ int main(int argc, char** argsv)
 		GL_FLOAT,           // type
 		GL_FALSE,           // normalized?
 		sizeof(Vertex),                  // stride
-		(void*)(3 * sizeof(GL_FLOAT))            // array buffer offset
+		(void*)(6 * sizeof(GL_FLOAT))            // array buffer offset
 	);
 
 
@@ -316,27 +323,30 @@ int main(int argc, char** argsv)
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementbuffer);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(unsigned) * indices.size(), &indices[0], GL_STATIC_DRAW);
 
-	// Create one OpenGL texture
-	GLuint textureID;
-	glGenTextures(1, &textureID);
+	if (image)
+	{
+		// Create one OpenGL texture
+		GLuint textureID;
+		glGenTextures(1, &textureID);
 
-	// "Bind" the newly created texture : all future texture functions will modify this texture
-	glBindTexture(GL_TEXTURE_2D, textureID);
+		// "Bind" the newly created texture : all future texture functions will modify this texture
+		glBindTexture(GL_TEXTURE_2D, textureID);
 
-	int Mode = GL_RGB;
+		int Mode = GL_RGB;
 
-	if (image->format->BytesPerPixel == 4) {
-		Mode = GL_RGBA;
+		if (image->format->BytesPerPixel == 4) {
+			Mode = GL_RGBA;
+		}
+
+		glTexImage2D(GL_TEXTURE_2D, 0, Mode, image->w, image->h, 0, Mode, GL_UNSIGNED_BYTE, image->pixels);
+
+		// Nice trilinear filtering.
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glGenerateMipmap(GL_TEXTURE_2D);
 	}
-
-	glTexImage2D(GL_TEXTURE_2D, 0, Mode, image->w, image->h, 0, Mode, GL_UNSIGNED_BYTE, image->pixels);
-
-	// Nice trilinear filtering.
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-	glGenerateMipmap(GL_TEXTURE_2D);
 
 	// Shader setup
 	GLuint programID = LoadShaders("vertShader.glsl", "fragShader.glsl");
@@ -380,8 +390,8 @@ int main(int argc, char** argsv)
 				rotation.y -= ev.motion.xrel * rotSpeed;
 				rotation.x -= ev.motion.yrel * rotSpeed;
 				glm::mat4 viewRotate(1.0f);
-				viewRotate = glm::rotate(viewRotate, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 				viewRotate = glm::rotate(viewRotate, glm::radians(rotation.y), glm::vec3(0.0f, 1.0f, 0.0f));
+				viewRotate = glm::rotate(viewRotate, glm::radians(rotation.x), glm::vec3(1.0f, 0.0f, 0.0f));
 				forward = glm::normalize(glm::vec3(viewRotate * cameraFace));
 				break;
 			}
