@@ -365,9 +365,9 @@ int main(int argc, char** argsv)
 	unsigned int objColourLoc = glGetUniformLocation(programID, "objColour");
 
 	float lightValues[] = {
-	0.0f, 1.0f, 0.0f,
+	1.0f, 1.0f, 1.0f,
 	0.0f,
-	1.0f, 1.0f, 1.0f
+	0.5f, 0.5f, 0.5f
 	};
 
 	GLuint bindingPoint = 1, uniformBuffer, blockIndex;
@@ -451,7 +451,7 @@ int main(int argc, char** argsv)
 		if (hasTexture)
 			glUniform3f(objColourLoc, -1.0f, -1.0f, -1.0f);
 		else
-			glUniform3f(objColourLoc, 1.0f, 1.0f, 1.0f);
+			glUniform3f(objColourLoc, 0.0f, 0.0f, 1.0f);
 
 		// Draw the triangle !
 		//glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
