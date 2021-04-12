@@ -225,7 +225,10 @@ int main(int argc, char ** argsv)
 			}
 		}
 
-		dynamicWorld->stepSimulation(0.3f, 10);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		btTransform currentTransform;
 		btMotionState* currentMotionState = sphereBody->getMotionState();
@@ -245,6 +248,7 @@ int main(int argc, char ** argsv)
 		//Bind a shader program
 		//glUseProgram(programID);
 		parallaxMapping->Bind();
+		glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
 
 		//Send Matrices
 		glUniformMatrix4fv(parallaxMapping->GetUniform("model"), 1, GL_FALSE, glm::value_ptr(teapot->GetMatModel()));
@@ -253,10 +257,17 @@ int main(int argc, char ** argsv)
 
 		//Send Ambient Light Colour
 		glUniform4fv(parallaxMapping->GetUniform("ambientLightColour"), 1, glm::value_ptr(ambientLightColour));
+		glUniform3f(viewPosLoc, position.x, position.y, position.x);
+
+		// Draw the triangle !
+		//glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
 
 		glUniform4fv(parallaxMapping->GetUniform("directionalLight.diffuseColour"), 1, glm::value_ptr(diffuseDirectionalLightColour));
 		glUniform4fv(parallaxMapping->GetUniform("directionalLight.specularColour"), 1, glm::value_ptr(specularDirectionalLightColour));
 		glUniform3fv(parallaxMapping->GetUniform("directionalLight.direction"), 1, glm::value_ptr(lightDirection));
+
+		glBindVertexArray(screenVAOID);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, (void*)0);
 
 		glUniform4fv(parallaxMapping->GetUniform("pointLight.diffuseColou"), 1, glm::value_ptr(diffusePointLightColour));
 		glUniform4fv(parallaxMapping->GetUniform("pointLight.specularColour"), 1, glm::value_ptr(specularPointLightColour));
